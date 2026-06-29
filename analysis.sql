@@ -18,3 +18,15 @@ SELECT n.ntaname, h.gid
 FROM nyc_neighborhoods n
 JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
 LIMIT 10;
+
+-- ============================================================
+-- Query 3: Aggregate
+-- Count hydrants per neighborhood using GROUP BY.
+-- Results ordered by count descending. Raw counts favor large
+-- outer-borough neighborhoods; area normalization follows in Q4.
+-- ============================================================
+SELECT n.ntaname, COUNT(*) AS hydrant_count
+FROM nyc_neighborhoods n
+JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
+GROUP BY n.ntaname
+ORDER BY hydrant_count DESC;
