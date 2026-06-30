@@ -48,3 +48,24 @@ FROM nyc_neighborhoods n
 JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
 GROUP BY n.ntaname, n.wkb_geometry
 ORDER BY density_per_km2 DESC;
+
+-- ============================================================
+-- Query 5: Buffer + Union + Intersection (Coverage Analysis)
+-- For each neighborhood, compute the percent of its area within
+-- 100m of a hydrant. Buffers (3857, meters) around each hydrant
+-- are unioned to remove overlap, then intersected with the
+-- neighborhood boundary to find actual covered area.
+-- Bottom results are parks, cemeteries, and airports — large
+-- non-residential land with few hydrants, not residential risk.
+-- ============================================================
+SELECT n.ntaname,
+       ST_Area(
+           ST_Intersection(
+               ST_Transform(n.wkb_geometry, 3857),
+               ST_Union(ST_Buffer(ST_Transform(h.wkb_geometry, 3857), 100))
+           )
+       ) / ST_Area(ST_Transform(n.wkb_geometry, 3857)) * 100 AS pct_covered
+FROM nyc_neighborhoods n
+JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
+GROUP BY n.ntaname, n.wkb_geometry
+ORDER BY pct_covered ASC;
