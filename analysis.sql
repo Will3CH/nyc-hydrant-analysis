@@ -30,3 +30,21 @@ FROM nyc_neighborhoods n
 JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
 GROUP BY n.ntaname
 ORDER BY hydrant_count DESC;
+
+-- ============================================================
+-- Query 4: Normalize by Area (Headline Result)
+-- Divide hydrant count by neighborhood area in km² to get
+-- density per km². Uses EPSG:2263 (NY State Plane, feet);
+-- divisor 10763910.0 converts sq ft to km².
+-- GROUP BY includes wkb_geometry to satisfy aggregate rules.
+-- Top results are dense Manhattan neighborhoods, inverting
+-- the raw-count ranking from Query 3.
+-- ============================================================
+SELECT n.ntaname,
+       COUNT(*) AS hydrant_count,
+       ST_Area(ST_Transform(n.wkb_geometry, 2263)) / 10763910.0 AS area_km2,
+       COUNT(*) / (ST_Area(ST_Transform(n.wkb_geometry, 2263)) / 10763910.0) AS density_per_km2
+FROM nyc_neighborhoods n
+JOIN nyc_hydrants h ON ST_Contains(n.wkb_geometry, h.wkb_geometry)
+GROUP BY n.ntaname, n.wkb_geometry
+ORDER BY density_per_km2 DESC;
